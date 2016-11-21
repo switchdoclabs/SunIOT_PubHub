@@ -1,8 +1,8 @@
 #
-#
 # SunIOT_InitialState - SwitchDoc Labs
 #
 # October 2016
+# Updated November 2016 for PubNub 4.02
 #
 import sys
 import os
@@ -10,36 +10,22 @@ import os
 
 sys.path.append('./SDL_Pi_SI1145');
 import time
-from pubnub import Pubnub
+
+from pubnub.pubnub import PubNub
+from pubnub.pubnub import PNConfiguration
 
 
 # configuration
-Pubnub_Publish_Key = "pub-c-xxxxxx"
-Pubnub_Subscribe_Key = "sub-c-xxxxxx"
+Pubnub_Publish_Key = "pub-c-xxxxx"
+Pubnub_Subscribe_Key = "sub-c-xxxx"
 
+pnconf = PNConfiguration()
+ 
+pnconf.subscribe_key = Pubnub_Subscribe_Key
+pnconf.publish_key = Pubnub_Publish_Key
+  
+pubnub = PubNub(pnconf)
 
-pubnub = Pubnub(publish_key=Pubnub_Publish_Key, subscribe_key=Pubnub_Subscribe_Key)
-def callback(message, channel):
-    print("CB:" + (message))
-  
-  
-def error(message):
-    print("ERROR : " + str(message))
-  
-  
-def connect(message):
-    print("CONNECTED")
-  
-  
-  
-def reconnect(message):
-    print("RECONNECTED")
-  
-  
-def disconnect(message):
-    print("DISCONNECTED")
-  
-  
 
 import RPi.GPIO as GPIO
 
@@ -55,6 +41,7 @@ from datetime import datetime
 
 from apscheduler.schedulers.background import BackgroundScheduler
 
+import apscheduler.events
 
 import SDL_Pi_SI1145
 
@@ -100,24 +87,30 @@ def readSunLight():
 	returnValue.append(uvIndex)
 	return returnValue
 
+def publish_callback(result, status):
+        print "status.is_error", status.is_error()
+        print "status.original_response", status.original_response
+        pass
+        # handle publish result, status always present, result if successful
+        # status.isError to see if error happened
 
-def publishToPubHub():
+
+def publishToPubNub():
 	
         vis = sensor.readVisible()
         IR = sensor.readIR()
         UV = sensor.readUV()
         uvIndex = UV / 100.0
-        print('Publishing Data to PubHub time: %s' % datetime.now())
+        print('Publishing Data to PubNub time: %s' % datetime.now())
         print '		Vis:             ' + str(vis)
         print '		IR:              ' + str(IR)
         print '		UV Index:        ' + str(uvIndex)
 
 
-	myMessage = '{ "SunIOT_Visible": "%d", "SunIOT_IR": "%d", "SunIOT_UVIndex": "%f" }' % (vis, IR, uvIndex)
-    	print pubnub.publish(channel='SunIOT_Sunlight', message=myMessage)
+	myMessage = '{ SunIOT_Visible: %d, SunIOT_IR: %d, SunIOT_UVIndex: %f }' % (vis, IR, uvIndex)
+        pubnub.publish().channel('SunIOT_Sunlight').message(myMessage).async(publish_callback)
 
-
-	blinkLED(3,0.200)
+        blinkLED(3,0.200)
 
 	returnValue = []
 	returnValue.append(vis)
@@ -126,8 +119,14 @@ def publishToPubHub():
 	return returnValue
 
 
+def ap_my_listener(event):
+    if event.exception:
+        print event.exception
+        print event.traceback
+
+
 print "-----------------"
-print "SunIOT_PubHub"
+print "SunIOT_PubNub"
 print ""
 print "SwitchDoc Labs" 
 print "-----------------"
@@ -138,15 +137,14 @@ if __name__ == '__main__':
 
     	scheduler = BackgroundScheduler()
 	
-	pubnub.subscribe(channels='my_channel', callback=callback, error=error,
-                 connect=connect, reconnect=reconnect, disconnect=disconnect)
+	#pubnub.subscribe(channels='my_channel', callback=callback, error=error, connect=connect, reconnect=reconnect, disconnect=disconnect)
 
 
 	# DEBUG Mode - because the functions run in a separate thread, debugging can be difficult inside the functions.
 	# we run the functions here to test them.
 	#tick()
-	#print readSunLight()
-	
+
+        scheduler.add_listener(ap_my_listener, apscheduler.events.EVENT_JOB_ERROR)    
 
 
 	# prints out the date and time to console
@@ -157,8 +155,8 @@ if __name__ == '__main__':
 	# IOT Jobs are scheduled here 
 	scheduler.add_job(readSunLight, 'interval', seconds=10)
 
-	# add the Update to Initial State
-	scheduler.add_job(publishToPubHub, 'interval', seconds=2)
+	# add the Update to PubNub 
+	scheduler.add_job(publishToPubNub, 'interval', seconds=2)
 	
     	# start scheduler
 	scheduler.start()
@@ -172,8 +170,8 @@ if __name__ == '__main__':
 
     	try:
         	# This is here to simulate application activity (which keeps the main thread alive).
-        	while True:
-            		time.sleep(2)
+                while True:
+            		time.sleep(1)
     	except (KeyboardInterrupt, SystemExit):
         	# Not strictly necessary if daemonic mode is enabled but should be done if possible
         	scheduler.shutdown

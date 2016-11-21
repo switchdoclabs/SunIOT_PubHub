@@ -1,5 +1,7 @@
 SwitchDoc Labs October, 2016
 
+Updated November, 2016 for PubNub 4.02 changes.
+
 SunIOT Code for PubNub / freeboard Dashboard 
 
 To install:
