@@ -95,6 +95,7 @@ def publish_callback(result, status):
         # status.isError to see if error happened
 
 
+
 def publishToPubNub():
 	
         vis = sensor.readVisible()
@@ -117,7 +118,6 @@ def publishToPubNub():
 	returnValue.append(IR)
 	returnValue.append(uvIndex)
 	return returnValue
-
 
 def ap_my_listener(event):
     if event.exception:

@@ -13,10 +13,13 @@ https://learn.adafruit.com/adafruits-raspberry-pi-lesson-4-gpio-setup/configurin
 Installing apscheduler
 
 sudo pip install setuptools --upgrade
+
 sudo pip install apscheduler
 
 Installing PubNub 
 
 sudo pip install pubnub
 
-
+-----------------
+NOTE: python applications with apscheduler have a tendency to stop ctrl-C from interrupting the program.  If you have this problem, use ctrl-break (the vertical symbol).
+----------------
