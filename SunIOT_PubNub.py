@@ -16,8 +16,8 @@ from pubnub.pubnub import PNConfiguration
 
 
 # configuration
-Pubnub_Publish_Key = "pub-c-xxxxx"
-Pubnub_Subscribe_Key = "sub-c-xxxx"
+Pubnub_Publish_Key = "pub-XXXXX"
+Pubnub_Subscribe_Key = "sub-YYYYY"
 
 pnconf = PNConfiguration()
  
@@ -108,7 +108,7 @@ def publishToPubNub():
         print '		UV Index:        ' + str(uvIndex)
 
 
-	myMessage = '{ SunIOT_Visible: %d, SunIOT_IR: %d, SunIOT_UVIndex: %f }' % (vis, IR, uvIndex)
+        myMessage = { "SunIOT_Visible": vis, "SunIOT_IR": IR, "SunIOT_UVIndex": uvIndex }
         pubnub.publish().channel('SunIOT_Sunlight').message(myMessage).async(publish_callback)
 
         blinkLED(3,0.200)
